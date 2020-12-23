@@ -5,6 +5,13 @@
 
   const dispatch = createEventDispatcher();
 
+  console.log("START ALERTBOX GRID")
+
+  // Adding support for nested
+  const getDescendantProp = (obj, path) => (
+          path.split('.').reduce((acc, part) => acc && acc[part], obj)
+  );
+
   const MIN_COLUMN_SIZE = 30;
 
   let wrapper;
@@ -238,14 +245,21 @@
     }
 
     function attachEvents() {
+      //console.log("attachEvents")
       window.addEventListener("mousemove", onWindowMouseMove);
       window.addEventListener("mouseup", onWindowMouseUp);
+      window.addEventListener("penis", onRowClick);
+      window.addEventListener("contextmenu", onRowClick);
+
       node.addEventListener("mousedown", onNodeMouseDown);
+      node.addEventListener("penis", onRowClick);
     }
 
     function detachEvents() {
+      //console.log("detachEvents")
       window.removeEventListener("mousemove", onWindowMouseMove);
       window.removeEventListener("mouseup", onWindowMouseUp);
+      //window.removeEventListener("click", onRowClick);
       node.removeEventListener("mousedown", onNodeMouseDown);
     }
     if (enabled) {
@@ -267,6 +281,7 @@
   }
 
   function onWindowKeyDown(event) {
+    //console.log("onWindowKeyDown")
     if (event.ctrlKey) {
       if (event.keyCode === 90) {
         undo();
@@ -285,6 +300,7 @@
    * @param {MouseEvent} event The MouseEvent object
    */
   function onMouseMove(event) {
+    //console.log("onMouseMove")
     onColumnDragMouseMove(event);
     onColumnResizeMouseMove(event);
     onRowAffixMouseMove(event);
@@ -296,6 +312,7 @@
    * @param {MouseEvent} event The MouseEvent object
    */
   function onMouseUp(event) {
+    //console.log("onMouseUp")
     onColumnDragEnd(event);
     onColumnResizeEnd(event);
     onRowAffixEnd(event);
@@ -307,6 +324,7 @@
    * @param {Object} event Event object with row and column objects
    */
   function onCellUpdated(event) {
+    //console.log("onCellUpdated")
     rows[event.detail.rowNumber][event.detail.column.dataName] =
       event.detail.value;
     dispatch("valueUpdated", event);
@@ -337,6 +355,7 @@
    * Event handler for starting column affix operation
    */
   function onColumnAffixStart(event) {
+    //console.log("onColumnAffixStart")
     // left click only
     if (event.which !== 1) {
       return;
@@ -353,6 +372,7 @@
    * Event handler for mousemove column affix operation
    */
   function onColumnAffixMouseMove(event) {
+    //console.log("onColumnAffixMouseMove")
     if (!__affixingColumn) {
       return;
     }
@@ -418,6 +438,7 @@
    * Event handler for column dragging
    */
   function onColumnDragStart(event, columnIndex) {
+    //console.log("onColumnDragStart")
     if (event.which !== 1) {
       return;
     }
@@ -440,6 +461,7 @@
   }
 
   function onColumnDragMouseMove(event) {
+    //console.log("onColumnDragMouseMove")
     if (!__columnDragging) {
       return;
     }
@@ -475,6 +497,7 @@
    * Window mouseup handler for column dragging
    */
   function onColumnDragEnd(event) {
+    //console.log("onColumnDragEnd")
     // user might try to be clever and middle-click to scroll horizontally while dragging a column
     // don't stop the drag for middle clicks
     if (event.which !== 1) {
@@ -516,6 +539,7 @@
    * Mousedown handler for column resizing
    */
   function onColumnResizeStart(event, columnIndex) {
+    //console.log("onColumnResizeStart")
     // left click only
     if (event.which !== 1) {
       return;
@@ -532,6 +556,7 @@
    * Mousemove handler for column resizing
    */
   function onColumnResizeMouseMove(event) {
+    //console.log("onColumnResizeMouseMove")
     // if not currently resizing a column, ignore the event
     if (!__resizing) {
       return;
@@ -580,6 +605,7 @@
    * Mouseup handler for column resizing
    */
   function onColumnResizeEnd(event) {
+    //console.log("onColumnResizeEnd")
     if (!__resizing) {
       return;
     }
@@ -587,6 +613,30 @@
     dispatch("columnWidthUpdated");
     __resizing = false;
     __columnIndexBeingResized = null;
+  }
+
+  /**
+   * Row click event
+   */
+  function onRowClick(rowData, event) {
+    console.log("onRowClick left Click")
+    // console.log("rowdata: ", rowData)
+    // console.log("event: ", event)
+    //event.preventDefault();
+    dispatch("penis", {data: rowData, event: event})
+
+
+  }
+
+  /**
+   * Row right click event (context menu)
+   */
+  function onRowRightClick(rowData, event) {
+    console.log("onRowRightClick Right Click")
+    // console.log("rowdata: ", rowData)
+    // console.log("event: ", event)
+    dispatch("rowRightClick", {data: rowData, event: event})
+    event.preventDefault();
   }
 
   /**
@@ -889,9 +939,12 @@
 <svelte:window
   on:mouseup={onMouseUp}
   on:mousemove={onMouseMove}
+  on:penis
+
   on:keydown={onWindowKeyDown} />
 <div
   class="data-grid-wrapper {__resizing || __columnDragging ? 'resizing' : ''}"
+  on:penis
   style="padding-top: {rowHeight}px;"
   bind:this={wrapper}
   role="table">
@@ -992,6 +1045,8 @@
         style="top: {getRowTop(row.i, rowHeight)}px; height: {rowHeight}px;
         width: {gridSpaceWidth}px;"
         role="row"
+        on:click={e => onRowClick("grid-row Left Click", e)}
+        on:contextmenu={e => onRowRightClick("grid-row Right Click", e)}
         aria-rowindex={row.i}>
         {#each columns as column, j}
           <div
@@ -1008,7 +1063,7 @@
                 {row}
                 on:valueupdate={onCellUpdated} />
             {:else}
-              <div class="cell-default">{row.data[column.dataName] || ''}</div>
+              <div class="cell-default" on:click={e=> dispatch('penis', 'PENIS')}>{getDescendantProp(row.data, column.dataName) || ''}</div>
             {/if}
           </div>
         {/each}
